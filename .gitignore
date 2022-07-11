@@ -1,0 +1,9 @@
+/frontend/node_modules
+/api/node_modules
+/frontend/package-lock.json
+/api/package-lock.json
+/frontend/package.json
+/api/package.json
+/api/.env
+/frontend/public/
+/frontend/assets
