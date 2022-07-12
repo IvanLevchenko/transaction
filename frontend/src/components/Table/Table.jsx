@@ -17,9 +17,9 @@ export default function Table({rows}) {
         <th>Transaction Fee</th>
       </thead>
       <tbody>
-        {[1,2,2,2,2,2].map(row => {
+        {/* {[1,2,2,2,2,2].map(row => {
           return <TableRow />
-        })}
+        })} */}
       </tbody>
     </table>
   )
