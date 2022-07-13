@@ -15,6 +15,13 @@ tr {
     letter-spacing: 0em;
     text-align: left;
     padding: 0 12px;
+    height: 32px;
+    white-space: nowrap;
+
+    ins {
+      color: #3A80BA;
+      cursor: pointer;
+    }
   }
 
   &:last-child td:last-child {

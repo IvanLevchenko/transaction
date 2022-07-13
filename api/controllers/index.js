@@ -3,96 +3,92 @@ const TransactionModel = require('../models/transaction.model')
 const moment = require('moment')
 
 const insertTransactions = async () => {
-  let currentCalls = 0
-  let totalCalls = 1
-  let maxCallsPerSecond = 5
-  let maxCalls = 8
+  let maxCalls = 1000
 
-  const sleep = ms => {
-    console.log('sleep')
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve() 
-      }, ms)
-    })
-  }
-
-  let number = await getBlockNumber()
-  let block = await getBlockByNumber(number)
-
-  let loop = async (transaction) => {
-    let number = await getBlockNumber()
-    let date = moment.unix(block.timestamp)
-    if (currentCalls < maxCallsPerSecond) {
-      console.log('lesser than 5')
-      currentCalls++;
-      await TransactionModel.create({
-        blockNumber: number,
-        transactionID: transaction.hash,
-        senderAddress: transaction.from,
-        RecipentsAddress: transaction.to,
-        blockConfirmations: parseInt(number) - parseInt(transaction.blockNumber),
-        date: `${date.year()}-${date.month()}-${date.day()}`,
-        value: transaction.value,
-        transactionFee: block.baseFeePerGas
-      })
+  // Get block and insert transactions into database
+  const fetchBlocks = async (calls = 0, prevBlockNumber, firstBlockNumber) => { 
+    if(parseInt(prevBlockNumber) - maxCalls == parseInt(firstBlockNumber)) {
+      return
     } else {
-      sleep(1100).then((res) => {
-        currentCalls = 0;
-        loop(transaction)
-      });
+      try {
+        setTimeout(async () => {
+          let number = await getBlockNumber()
+          let block = await getBlockByNumber(number)
+          let firstNum
+  
+          if(calls == 0) {
+            firstNum = number
+          }
+  
+          if(number !== prevBlockNumber) {
+            block.transactions.map(async (transaction) => { // Loop through transactions
+              let date = moment.unix(block.timestamp) // Decoding timestamp to common date look
+              await TransactionModel.create({  // Creating new collection entrie
+                blockNumber: transaction.blockNumber,
+                transactionID: transaction.hash,
+                senderAddress: transaction.from,
+                RecipentsAddress: transaction.to,
+                blockConfirmations: parseInt(firstBlockNumber) ? parseInt(transaction.blockNumber) - parseInt(firstBlockNumber) : 0,
+                date: `${date.year()}-${date.month()}-${date.day()}`,
+                value: transaction.value,
+                transactionFee: transaction.maxFeePerGas
+              })
+  
+            })
+            
+          }
+          fetchBlocks(calls + 1, number, firstNum ? firstNum : firstBlockNumber)
+  
+        }, 50)
+
+      } catch(e) {
+        console.log('Error: block fetching error')
+      }
     }
   }
 
-  await block.transactions.map(loop)
+  const count = await TransactionModel.count({}) // Getting collection length
 
-  // const fetchBlocks = async (lastIndex = 0) => {
-  //   console.log('###### FETCHING ######')
-  //   let number = await getBlockNumber()
-  //   let block = await getBlockByNumber(number)
-  //   console.log(lastIndex)
-  //   console.log(`number: ${number}`)
-  //   console.log(`length: ${block?.transactions?.length}`)
-  //   await block.transactions.slice(lastIndex).map(async (transaction, index) => {
-  //     if(index < maxCallsPerSecond - 1) {
-  //       console.log(currentCalls)
-  //       let number = await getBlockNumber()
-  //       let date = moment.unix(block.timestamp)
-  //       await TransactionModel.create({
-  //         blockNumber: number,
-  //         transactionID: transaction.hash,
-  //         senderAddress: transaction.from,
-  //         RecipentsAddress: transaction.to,
-  //         blockConfirmations: parseInt(number) - parseInt(transaction.blockNumber),
-  //         date: `${date.year()}-${date.month()}-${date.day()}`,
-  //         value: transaction.value,
-  //         transactionFee: block.baseFeePerGas
-  //       })
-  //       if(totalCalls == maxCalls) {
-  //         return
-  //       } else {
-  //         if(currentCalls < maxCallsPerSecond) {
-  //           currentCalls++
-  //           totalCalls++
-  //           fetchBlocks(index + lastIndex)
-  //         } else {
-  //           totalCalls++
-  //           currentCalls = 0
-  //           sleep(1100).then(res => {
-  //             fetchBlocks(index + lastIndex)
-  //           })
-  //         }
-  //       }
-  //     } else {
-  //       sleep(1100).then(res => {
-  //         return
-  //       })
-  //     }
-  //   })
-  
-  // }
-  // fetchBlocks()
+  if(!count) {
+    fetchBlocks()
+  }
+
   // await TransactionModel.deleteMany({})
 }
 
-module.exports = {insertTransactions}
+const getTransactions = async (req, res) => {
+  const page = req.query.page
+  const pageElementsAmount = req.query.pageElementsAmount
+
+  try {
+    
+    const result = 
+    await TransactionModel.find({}) // Finding all entries in collection
+    .sort({$natural:-1}) // Sorting by reversed order
+    .skip(page == 1 ? 0 : pageElementsAmount * page) // Skipping all unnecessary entries
+    .limit(14) // Getting only N entries
+    
+    
+    const latestBlockNumber = await getBlockNumber()
+    result.forEach(async (entrie) => {
+      await TransactionModel.findOneAndUpdate(
+        {_id: entrie._id}, 
+        {blockConfirmations: parseInt(latestBlockNumber) - parseInt(entrie.blockNumber)}
+        )
+    })
+
+    const count = await TransactionModel.count() // Getting collection length
+    const maxPages = Math.ceil(count / pageElementsAmount) // Calculating maximum possible pages amount
+    if(!result.length) {
+      getTransactions(req, res)
+    } else {
+      return res.status(200).send({result, maxPages})
+    }
+
+  } catch(e) {
+    console.log('Error: in DB request')
+    res.status(502).send('Something went wrong')
+  } 
+}
+
+module.exports = {insertTransactions, getTransactions}

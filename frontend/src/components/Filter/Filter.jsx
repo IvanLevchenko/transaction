@@ -3,7 +3,8 @@ import './Filter.scss'
 
 import search from '../../assets/search.svg'
 
-export default function Filter() {
+export default function Filter({row}) {
+  let options = []
   return (
     <div className="filter">
       <div className="filter__search">

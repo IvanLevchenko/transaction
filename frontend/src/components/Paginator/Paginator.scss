@@ -4,6 +4,7 @@
   width: 100%;
   margin: auto;
   margin-top: 56px;
+  user-select: none;
 
   .paginator__left-btn {
     margin-right: 24px;
@@ -30,9 +31,16 @@
       letter-spacing: 0em;
       text-align: center;
       align-items: center;
+      margin: 0 4px;
       display: flex;
       cursor: pointer;
       justify-content: center;
+
+    }
+    .selected {
+      background: #3A80BA;
+      color: white;
+      border: none;
     }
   }
 }

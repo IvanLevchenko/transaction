@@ -34,8 +34,7 @@ const getTransactionByHash = async (hash) => {
       }
     }
   )
-  
-  return transaction.result
+  return transaction.data.result
 }
 
 module.exports = {getBlockNumber, getBlockByNumber, getTransactionByHash}
