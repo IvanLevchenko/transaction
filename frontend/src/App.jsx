@@ -10,18 +10,24 @@ import Paginator from './components/Paginator/Paginator';
 function App() {
   let [rows, setRows] = useState([])
   let [page, setPage] = useState(1)
-  let [maxPages, setMaxPages] = useState(0)
+  let [maxPages, setMaxPages] = useState(5)
   let pageElementsAmount = 14
   let [isPending, setPending] = useState(true)
+  let [filter, setFilter] = useState()
 
   useEffect(() => {
    setPending(true)
-   getTransactions({page, pageElementsAmount}).then(response => {
+   getTransactions(
+    {page, 
+    pageElementsAmount, 
+    option: filter?.option ? filter.option : null, 
+    value: filter?.value ? filter.value : null}).then(response => {
       setRows(response.data.result)
       setMaxPages(response.data.maxPages)
       setPending(false)
     })
-  }, [page])
+    console.log(filter)
+  }, [page, filter])
 
   return (
     <div className="App">
@@ -30,7 +36,15 @@ function App() {
       </header>
       <main className="table-wrapper">
         <div className="table-wrapper__filter">
-          <Filter row={rows[0]}/>
+          <Filter 
+            row={rows[0]}
+            onFilter={(payload, option, value) => {
+              setRows(payload)
+              setFilter({option, value})
+            }}
+            pageElementsAmount={pageElementsAmount}
+            page={page}
+          />
         </div>
         <Table 
           rows={rows} 

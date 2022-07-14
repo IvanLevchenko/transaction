@@ -24,22 +24,21 @@ const insertTransactions = async () => {
             block.transactions.map(async (transaction) => { // Loop through transactions
               let date = moment.unix(block.timestamp) // Decoding timestamp to common date look
               await TransactionModel.create({  // Creating new collection entrie
-                blockNumber: transaction.blockNumber,
+                blockNumber: parseInt(transaction.blockNumber),
                 transactionID: transaction.hash,
                 senderAddress: transaction.from,
-                RecipentsAddress: transaction.to,
+                recipentsAddress: transaction.to,
                 blockConfirmations: parseInt(firstBlockNumber) ? parseInt(transaction.blockNumber) - parseInt(firstBlockNumber) : 0,
-                date: `${date.year()}-${date.month()}-${date.day()}`,
-                value: transaction.value,
-                transactionFee: transaction.maxFeePerGas
+                date: `${date.year()}-${date.month() + 1}-${date.day()}`,
+                value: '0.' + parseInt(transaction.value),
+                transactionFee: ((((block.baseFeePerGas) * 10**-9) + ((transaction.maxPriorityFeePerGas) * 10**-9)) * (transaction.gas)) * 10**-9
               })
-  
             })
             
           }
           fetchBlocks(calls + 1, number, firstNum ? firstNum : firstBlockNumber)
   
-        }, 50)
+        }, 1100)
 
       } catch(e) {
         console.log('Error: block fetching error')
@@ -59,15 +58,16 @@ const insertTransactions = async () => {
 const getTransactions = async (req, res) => {
   const page = req.query.page
   const pageElementsAmount = req.query.pageElementsAmount
+  const option = req.query.option
+  const value = req.query.value
 
   try {
-    
     const result = 
-    await TransactionModel.find({}) // Finding all entries in collection
+    await TransactionModel
+    .find(option && value ? {[option]: value} : {}) // Finding all entries in collection
     .sort({$natural:-1}) // Sorting by reversed order
     .skip(page == 1 ? 0 : pageElementsAmount * page) // Skipping all unnecessary entries
     .limit(14) // Getting only N entries
-    
     
     const latestBlockNumber = await getBlockNumber()
     result.forEach(async (entrie) => {
@@ -77,7 +77,8 @@ const getTransactions = async (req, res) => {
         )
     })
 
-    const count = await TransactionModel.count() // Getting collection length
+    const count = await TransactionModel.count(option && value ? {[option]: value} : {}) // Getting collection length
+    console.log(count)
     const maxPages = Math.ceil(count / pageElementsAmount) // Calculating maximum possible pages amount
     if(!result.length) {
       getTransactions(req, res)
@@ -91,4 +92,25 @@ const getTransactions = async (req, res) => {
   } 
 }
 
-module.exports = {insertTransactions, getTransactions}
+const filterTransactions = async (req, res) => {
+  const option = req.query.option
+  const page = req.query.page
+  const pageElementsAmount = req.query.pageElementsAmount
+  const value = req.query.value
+  
+  try {
+    const filtered = 
+      await TransactionModel
+      .find({[option]: value}) // Filtering by value
+      .sort({$natural:-1}) // Sorting by reversed order
+      .skip(page == 1 ? 0 : pageElementsAmount * page) // Skipping all unnecessary entries
+      .limit(14) // Getting only N entries
+
+    res.status(200).send(filtered)
+  } catch(e) {
+    console.log('Error: filter error')
+    res.status(504).send('Something went wrong')
+  }
+}
+
+module.exports = {insertTransactions, getTransactions, filterTransactions}

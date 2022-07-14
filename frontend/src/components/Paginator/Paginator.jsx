@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import './Paginator.scss'
 
 import rightArrow from '../../assets/paginator-arrow.svg'
@@ -10,6 +10,9 @@ export default function Paginator({onPageChange, maxPageAmount}) {
   
   const selectPage = (selectedPage) => {
     setCurrentPage(selectedPage)
+    if(pages.length == 1) {
+      return 
+    }
     if(pages.indexOf(selectedPage) > 2) {
       setPages(pages.map((page) => {
         if(pages[pages.length - 1] + 1 <= maxPageAmount) {
@@ -29,6 +32,10 @@ export default function Paginator({onPageChange, maxPageAmount}) {
     }
     onPageChange(selectedPage)
   }
+
+  useEffect(() => {
+    setPages(new Array(maxPageAmount < 5 ? maxPageAmount : 5).fill('').map((page, index) => page = index + 1))
+  }, [maxPageAmount])
 
   return (
     <div className="paginator">

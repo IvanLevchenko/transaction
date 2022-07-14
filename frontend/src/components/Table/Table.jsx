@@ -6,6 +6,7 @@ import Loader from '../Loader/Loader'
 
 export default function Table({rows, page, rowsAmount, isPending}) {
   return (
+    <>
     <table className="table">
       <thead>
         <tr>
@@ -20,12 +21,12 @@ export default function Table({rows, page, rowsAmount, isPending}) {
         </tr>
       </thead>
       <tbody>
-        {isPending
-        ? <Loader />
-        : rows.slice(rowsAmount * page, rowsAmount).map((row, index)=> {
-          return <TableRow key={Math.random()} index={index + 1} row={row} />
+        {rows.slice(rowsAmount * page, rowsAmount).map((row) => {
+          return <TableRow key={Math.random()} row={row} />
         })}
       </tbody>
     </table>
+    {isPending && <Loader />}
+    </>
   )
 }
